@@ -3,7 +3,7 @@ import time
 #Reads sudoku grids, returns them in an array
 def read_items():
     grid_array = []
-    with open('C:/Users/oscar/OneDrive/Skrivbord/AI-Labs/Assignment-2/input_files/sudoku.txt', 'r') as file:
+    with open('C:/Users/oscar/OneDrive\Dokument/GitHub\AI-Labs/Assignment-2/input_files/sudoku.txt', 'r') as file:
         for _ in range(4):
             next(file)
         lines = file.readlines()
