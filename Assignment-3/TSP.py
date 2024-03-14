@@ -4,6 +4,12 @@ import time
 
 
 fitness_amount = 0
+class Genome:
+    def __init__(self, path, fitness):
+        self.path = path
+        self.fitness = fitness
+
+
 
 def read_items():
     cities = {}
@@ -27,9 +33,10 @@ def calculate_distance(city1, city2):
     return np.sqrt((np.power(x2 - x1, 2)) + (np.power(y2 - y1, 2)))
 #Generate a random genome
 def generate_genome():
-    genome = []
-    genome = rand.sample(range(2, 53), 51)
-    genome.insert(0, 1)
+    city_list = []
+    city_list = rand.sample(range(2, 53), 51)
+    city_list.insert(0, 1)
+    genome = Genome(city_list, -1)
     return genome
 #Initiate first population
 def init_population(pop_size):
@@ -42,61 +49,36 @@ def init_population(pop_size):
 def eval_fitness(genome):
     fitness_value = 0
     global fitness_amount
-    for i in range(len(genome) - 1):
-        fitness_value += calculate_distance(cities[genome[i]], cities[genome[i+1]])
-    fitness_value += calculate_distance(cities[genome[i + 1]], cities[1])
+    if genome.fitness != 0 and genome.fitness != -1:
+        return genome.fitness
+    for i in range(len(genome.path) - 1):
+        fitness_value += calculate_distance(cities[genome.path[i]], cities[genome.path[i+1]])
+    fitness_value += calculate_distance(cities[genome.path[i + 1]], cities[1])
+    genome.fitness = fitness_value
     fitness_amount += 1
-               
-    return fitness_value
-#Might want to add so that the fittest gnome will survive to the next gen
-#def selection():
-    k = 2
-    parents = []
-    for _ in range((len(population) // k)):
-        #parent = roulette(fitness_scores)
-        #parents.append(parent)
-        #fitness_scores.remove(eval_fitness(parent))
-        #population.remove(parent)
-        tournament = rand.sample(population, k)
-        fitness_scores = [eval_fitness(genome) for genome in tournament]
-        for _ in range(k//2):
-            winner_index = fitness_scores.index(min(fitness_scores))
-            loser_index = fitness_scores.index(max(fitness_scores))
-            parents.append(tournament[winner_index])
-            population.remove(tournament[winner_index])
-            population.remove(tournament[loser_index])
-    return parents
-def selection(fitness_scores):
-    k = 2
-    parents = []
-    fitness = fitness_scores[:]
-    while len(population) > 0:
-        tournament = rand.sample(fitness, k)
-        winner_index = tournament.index(min(tournament))
-        loser_index = tournament.index(max(tournament))
-        winner = population.index(population[fitness.index(tournament[winner_index])])
-        loser = population.index(population[fitness.index(tournament[loser_index])])
-        parents.append(population[winner])
-        fitness_scores.remove(tournament[loser_index])
-        remove_winner = population[winner]
-        remove_loser = population[loser]
-        population.remove(remove_winner)
-        population.remove(remove_loser)
-        fitness.remove(tournament[winner_index])
-        fitness.remove(tournament[loser_index])
-           
-    return parents
+
+#def selection():#
+#    population.sort(key=lambda x: x.fitness)
+ #   fittest = population[0:(len(population)//2)]
+ #   return fittest
+def tournament_selection(population, t_size):
+    mating_pool = []
+    while len(mating_pool) < len(population)//2:
+        candidates = rand.sample(population, t_size)
+        fittest = min(candidates, key=lambda x: x.fitness)
+        mating_pool.append(fittest)
+    mating_pool.sort(key=lambda x: x.fitness)
+    return mating_pool
 
 def crossover(parent1, parent2):
-    
     cities_cut = len(cities)-1
     cut = round(rand.uniform(1, cities_cut))
-    offspring1 = parent1[0:cut]
-    offspring1 += [city for city in parent2 if city not in offspring1]
-    offspring2 = parent2[0:cut]
-    offspring2 += [city for city in parent1 if city not in offspring2]
+    offspring = (Genome([], 0))
+    offspring.path = parent1.path[0:cut]
+    offspring.path += [city for city in parent2.path if city not in offspring.path]
+    
    
-    return offspring1, offspring2
+    return offspring
 #def crossover(parent1, parent2):
     #crossover_point1 = rand.randint(1, (len(parent1)-1))
     #crossover_point2 = rand.randint(1, (len(parent1)-1)) 
@@ -111,41 +93,36 @@ def crossover(parent1, parent2):
    
     return offspring
 
-def populate_new_gen(fitness_scores):
+def populate_new_gen(mating_pool):
     new_gen = []
-    for _ in range(elit_rate):       
-        winner_index = fitness_scores.index(min(fitness_scores))
-        
-        if rand.uniform(0, 1) <= mut_rate:
-            mutate_swap(population[winner_index])
-        elite = population[winner_index]
-        new_gen.append(population[winner_index])
-        fitness_scores.remove(fitness_scores[winner_index])
-        
-    for _ in range((len(population))-1):
-        parents = rand.sample(population, 2)
+    elites = []
+    for i in range(elit_rate):      
+        elites.append(mating_pool[0])
+        mating_pool.remove(mating_pool[0])
+        if rand.uniform(0, 1) <= mut_rate_elite:
+            mutate_swap(elites[i])
+        new_gen.append(elites[i])
+            
+    while len(new_gen) < pop_size:
+        elite_index = rand.randint(0, elit_rate-1)
+        parents = rand.sample(mating_pool, 2)
         parent1 = parents[0]
         parent2 = parents[1]
         if rand.uniform(0, 1) <= cross_rate:       
-            offspring1, offspring2 = crossover(parent1, parent2)
-            new_gen.append(offspring1)
-            new_gen.append(offspring2)
+            offspring = crossover(parent1, parent2)           
         else:
-            elite_offspring1, elite_offspring2 = crossover(elite, parent1)
-            new_gen.append(elite_offspring1)
-            new_gen.append(elite_offspring2)
-    if len(new_gen) != pop_size:
-        new_gen.append(mutate_swap(offspring1))
-    
-    
-    
+            offspring = crossover(elites[elite_index], parent1)
+        if rand.uniform(0, 1) <= mut_rate:
+            mutate_swap(offspring)
+        new_gen.append(offspring)
     return new_gen
 
 def mutate_swap(genome):
     
-    indexes = rand.sample(range(2, len(genome)), mut_amount*2)
+    indexes = rand.sample(range(2, len(genome.path)), mut_amount*2)
     for i in range(len(indexes)//2):
-        genome[indexes[i]], genome[indexes[i+1]] = genome[indexes[i+1]], genome[indexes[i]]
+        genome.path[indexes[i]], genome.path[indexes[i+1]] = genome.path[indexes[i+1]], genome.path[indexes[i]]
+        genome.fitness = 0
     return genome
     
 
@@ -159,30 +136,33 @@ population = []
 fitness_scores = []
 
 population = init_population(pop_size)
-fitness_scores = [eval_fitness(genome) for genome in population]
-
+for genome in population:
+    eval_fitness(genome)
+t_size = 3
 elit_rate = 1
 generations = 0
-cross_rate = 0.85
-mut_rate = 0.20
+cross_rate = 0.60
+mut_rate = 0.33
+mut_rate_elite = 0.22
 mut_amount = 1
 start = time.time()
-while((min(fitness_scores) >= 8999) and fitness_amount < 250000):
-    fitness_scores = [eval_fitness(genome) for genome in population]
-    population = selection(fitness_scores)
-    population = populate_new_gen(fitness_scores)
+while((min(population, key=lambda x: x.fitness).fitness >= 9000 or (min(population, key=lambda x: x.fitness).fitness <= 0)) and fitness_amount < 250000):
+    old_fitness = (min(population, key=lambda x: x.fitness).fitness)
+    mating_pool = tournament_selection(population, t_size)
+    new_generation = populate_new_gen(mating_pool)
+    for genome in new_generation:
+        eval_fitness(genome)
+    population = new_generation
     generations += 1
     if generations % 4 == 0:   
-        print("Fitness:", min(fitness_scores))
+        print("Fitness:", (min(population, key=lambda x: x.fitness).fitness))
         
         
     #print("Generation:", generations)
     
 end = time.time()
-winner_index = fitness_scores.index(min(fitness_scores))
 print("Time:", end-start)
-print(population[winner_index])
-print("Distance for last generation", eval_fitness(population[winner_index]))
+print("Distance for last generation", (min(population, key=lambda x: x.fitness).fitness))
 print("Generations:", generations)
 
 
