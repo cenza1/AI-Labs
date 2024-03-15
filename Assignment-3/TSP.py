@@ -61,12 +61,14 @@ def eval_fitness(genome):
 #    population.sort(key=lambda x: x.fitness)
  #   fittest = population[0:(len(population)//2)]
  #   return fittest
-def tournament_selection(population, t_size):
+def tournament_selection(population, t_size, selection_pressure):
     mating_pool = []
-    while len(mating_pool) < len(population)//2:
-        candidates = rand.sample(population, t_size)
+    pop = population[:]
+    while len(mating_pool) < selection_pressure:
+        candidates = rand.sample(pop, t_size)
         fittest = min(candidates, key=lambda x: x.fitness)
         mating_pool.append(fittest)
+        pop.remove(fittest)
     mating_pool.sort(key=lambda x: x.fitness)
     return mating_pool
 
@@ -97,21 +99,18 @@ def populate_new_gen(mating_pool):
     new_gen = []
     elites = []
     for i in range(elit_rate):      
-        elites.append(mating_pool[0])
-        mating_pool.remove(mating_pool[0])
         if rand.uniform(0, 1) <= mut_rate_elite:
-            mutate_swap(elites[i])
-        new_gen.append(elites[i])
+            mutate_swap(mating_pool[i])
+        new_gen.append(mating_pool[i])
             
     while len(new_gen) < pop_size:
-        elite_index = rand.randint(0, elit_rate-1)
         parents = rand.sample(mating_pool, 2)
         parent1 = parents[0]
         parent2 = parents[1]
         if rand.uniform(0, 1) <= cross_rate:       
             offspring = crossover(parent1, parent2)           
         else:
-            offspring = crossover(elites[elite_index], parent1)
+            continue
         if rand.uniform(0, 1) <= mut_rate:
             mutate_swap(offspring)
         new_gen.append(offspring)
@@ -130,6 +129,7 @@ def mutate_swap(genome):
 cities = read_items()
 
 pop_size = 32
+selection_pressure = 20
 genome = [] #52 size
 prev_fitness = {}
 population = [] 
@@ -139,16 +139,16 @@ population = init_population(pop_size)
 for genome in population:
     eval_fitness(genome)
 t_size = 3
-elit_rate = 1
+elit_rate = 2
 generations = 0
-cross_rate = 0.60
-mut_rate = 0.33
-mut_rate_elite = 0.22
+cross_rate = 0.9
+mut_rate = 0.2
+mut_rate_elite = 0.2
 mut_amount = 1
 start = time.time()
-while((min(population, key=lambda x: x.fitness).fitness >= 9000 or (min(population, key=lambda x: x.fitness).fitness <= 0)) and fitness_amount < 250000):
+while((min(population, key=lambda x: x.fitness).fitness >= 8000 or (min(population, key=lambda x: x.fitness).fitness <= 0)) and fitness_amount < 250000):
     old_fitness = (min(population, key=lambda x: x.fitness).fitness)
-    mating_pool = tournament_selection(population, t_size)
+    mating_pool = tournament_selection(population, t_size, selection_pressure)
     new_generation = populate_new_gen(mating_pool)
     for genome in new_generation:
         eval_fitness(genome)

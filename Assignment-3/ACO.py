@@ -103,7 +103,7 @@ def run_aco(phermone_table, distances, ant_amount, iterations, evaporation):
     best_path = None
     best_distance = float('inf')
     for _ in range(iterations):
-        ants = [Ant(len(cities)-1) for _ in range(ant_amount)]
+        ants = [Ant(len(cities)) for _ in range(ant_amount)]
         print("")
         for ant in ants:
             current_city = 0
@@ -128,13 +128,13 @@ def run_aco(phermone_table, distances, ant_amount, iterations, evaporation):
 
 
 cities = read_items()
-alpha = 2
-beta = 3
+alpha = 3
+beta = 2
 phermone_value = 1.0
 evaporation_rate = 0.8
 deposition_value = 2
-ant_amount = 104
-iterations = 6
+ant_amount = 52
+iterations = 10
 phermone_table, distance_table = init_tables(cities, phermone_value, max_distance=0.0)
 distance, path = run_aco(phermone_table, distance_table, ant_amount, iterations, evaporation_rate)
 print("Distance:", distance)
