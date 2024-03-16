@@ -8,31 +8,31 @@ class Ant:
         self.unvisited = [i for i in range(0, num_cities)]
      
     def select_next_city(self, phermones, distances, current_city, unvisited_cities):
-        selected_city = None
         total_probability = sum(((phermones[current_city][city]) ** alpha) * (((1.0 / distances[current_city][city]) ** beta) + 0.01) for city in unvisited_cities)
         probabilities = {}
         for city in unvisited_cities:    
             phermone_level = phermones[current_city][city]
             distance = distances[current_city][city]
-            probability = (((phermone_level ** alpha) * ((1.0 / distance) ** beta)) / total_probability)
+            probability = (((phermone_level ** alpha) * ((1.0 / distance) ** beta)) / (total_probability + 0.001))
             probabilities[city] = probability
         selected_city = roulette_selection(probabilities)
         return selected_city
     
 def roulette_selection(probabilities):
     selected_city = None
-    total_probability = sum(probabilities.values())
+    if len(probabilities) == 1:
+        return list(probabilities.keys())[0]
+    total_probability = sum(probabilities.values())   
     probability = rand.uniform(0, total_probability)
     cumu_probability = 0.0
     for p in probabilities:
         cumu_probability += probabilities[p]
         if cumu_probability >= probability:
             selected_city = p
-            return selected_city
-    return None
-
-
-        
+            break
+    return selected_city
+    
+  
 def calc_distance(city1, city2):
     (x1, y1) = city1
     (x2, y2) = city2
@@ -44,6 +44,7 @@ def calc_total_distance(path):
         total_distance += calc_distance(cities[path[i]], cities[path[i+1]])
     total_distance += calc_distance(cities[path[i+1]], cities[0])
     return total_distance
+
 def calc_normalized_distance(city1, city2, max_distance):
     (x1, y1) = city1
     (x2, y2) = city2
@@ -104,14 +105,12 @@ def run_aco(phermone_table, distances, ant_amount, iterations, evaporation):
     best_distance = float('inf')
     for _ in range(iterations):
         ants = [Ant(len(cities)) for _ in range(ant_amount)]
-        print("")
+       
         for ant in ants:
             current_city = 0
             while len(ant.unvisited) > 0:
                 ant.path.append(current_city)
                 ant.unvisited.remove(current_city)
-                if not ant.unvisited:
-                    print("")
                 next_city = ant.select_next_city(phermone_table, distances, current_city, ant.unvisited)
                 current_city = next_city
                 print("Ant searching...")
@@ -132,7 +131,7 @@ alpha = 3
 beta = 2
 phermone_value = 1.0
 evaporation_rate = 0.8
-deposition_value = 2
+deposition_value = 1
 ant_amount = 52
 iterations = 10
 phermone_table, distance_table = init_tables(cities, phermone_value, max_distance=0.0)
